@@ -110,11 +110,56 @@ function App() {
     }
   };
 
+  useEffect(() => {
+    // 1. step - connect
+    // 2. step - open document for collaborative editing   
+    okdb.open(
+      DATA_TYPE, // collection name
+      documentId,
+      initialGrid, // default value to save if doesn't exist yet
+      {
+        onChange: updateCallback,
+        onPresence: presenceCallback
+      }
+    )
+    .then(data => { 
+      // get the data once the doc is opened
+      console.log("Loaded doc from server ", data);    
+      connectedRef.current = true;        
+      calculateTotals(data);
+      setGrid(data);
+
+      //jspreadsheet(connectedRef.current, {data:data, minDimensions:[11,27]});
+
+      //############################# 22.3.8
+
+      const table = document.getElementById('resizeMe');
+
+      // Query all headers
+      const cols = table.querySelectorAll('td');
+
+      // Loop over them
+      [].forEach.call(cols, function (col) {
+          // Create a resizer element
+          const resizer = document.createElement('div');
+          resizer.classList.add('resizer');
+
+          // Set the height
+          resizer.style.height = `${col.offsetHeight}px`;
+
+          // Add a resizer element to the column
+          col.appendChild(resizer);
+
+          // Will be implemented in the next section
+          createResizableColumn(col, resizer);
+      });
+
+      })
+    .catch(err => { console.log("Error opening doc ", err)});
+  }, [documentId]);
 
   
   useEffect(() => {
-    console.log("update_document_id", documentId)
-    document.title = `document Id is ${documentId}`;
     // 1. step - connect
     okdb.connect(TOKEN)
       .then(user => {
@@ -168,7 +213,7 @@ function App() {
       .catch(err => {
         console.error("[okdb] error connecting ", err);
       });
-  }, [documentId]);
+  }, []);
 
   useEffect(() => {
     const handler = e => { 
