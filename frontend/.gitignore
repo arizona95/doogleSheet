@@ -9,3 +9,4 @@ npm-debug.log
 node_modules
 .nyc_output
 !node_modules/okdb-spreadsheet
+!node_modules/okdb-spreadsheet/lib
