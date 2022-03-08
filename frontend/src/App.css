@@ -15,7 +15,6 @@
   font-size: 13px;
   padding: 2px;
   height: 22px;
-  line-height: 21px;
 }
 .data-grid-container .data-grid .cell input {
   font-size: 13px;
@@ -28,7 +27,9 @@ table.data-grid tr td:first-child {
   text-align:left;
 }
 
-
+.data-grid-container .data-grid .cell .resizer {
+  height: 100%;
+}
 
 .cursor-block {
   position: absolute;  
@@ -59,3 +60,4 @@ table.data-grid tr td:first-child {
   margin-right: 5px;
   margin-left: 10px;  
 }
+
