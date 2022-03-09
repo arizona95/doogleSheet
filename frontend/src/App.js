@@ -89,6 +89,7 @@ function App() {
 
   // callback to recieve status changes of other collaborators
   const presenceCallback = (id, data) => {
+    console.log("presenceCallback1", id, data, presences)
     if (!data) { // empty data means that the user is disconnected
       setPresences(prev => {
         const newState = cloneDeep(prev);
@@ -111,6 +112,49 @@ function App() {
       });
     }
   };
+
+  useEffect(() => {
+    okdb.open(
+      DATA_TYPE, // collection name
+      documentId,
+      initialGrid, // default value to save if doesn't exist yet
+      {
+        onChange: updateCallback,
+        onPresence: presenceCallback,
+      },
+    )
+      .then(data => {
+        // get the data once the doc is opened
+        console.log('Loaded doc from server ', data);
+        connectedRef.current = true;
+        calculateTotals(data);
+        setGrid(data);
+
+        const table = document.getElementById('resizeMe');
+
+        // Query all headers
+        const cols = table.querySelectorAll('td');
+
+        // Loop over them
+        [].forEach.call(cols, function (col) {
+          // Create a resizer element
+          const resizer = document.createElement('div');
+          resizer.classList.add('resizer');
+
+          // Add a resizer element to the column
+          col.appendChild(resizer);
+
+          // Will be implemented in the next section
+          createResizableColumn(col, resizer);
+        });
+
+      })
+      .catch(err => {
+        console.log('Error opening doc ', err);
+      });
+  }, [documentId]);
+
+
 
   useEffect(() => {
     console.log('update_document_id', documentId);
@@ -136,10 +180,6 @@ function App() {
             connectedRef.current = true;
             calculateTotals(data);
             setGrid(data);
-
-            //jspreadsheet(connectedRef.current, {data:data, minDimensions:[11,27]});
-
-            //############################# 22.3.8
 
             const table = document.getElementById('resizeMe');
 
@@ -167,8 +207,9 @@ function App() {
       .catch(err => {
         console.error('[okdb] error connecting ', err);
       });
-  }, [documentId]);
+  }, []);
 
+  /*
   useEffect(() => {
     const handler = e => {
       const container = document.querySelector('#okdb-table-container');
@@ -194,6 +235,7 @@ function App() {
       window.removeEventListener('mousemove', handler);
     };
   }, [localSelection]);
+  */
 
   const updateDoc = (newDoc) => {
     if (connectedRef.current) {
@@ -214,7 +256,7 @@ function App() {
     const textarea = cell.lastChild;
     const resize = () => {
       setEditingCell(cell);
-      cell.style.height = `${textarea.scrollHeight + 20}px`;
+      cell.style.height = `${textarea.scrollHeight}px`;
     };
     resize();
   };
@@ -275,6 +317,10 @@ function App() {
                       cell.addEventListener('dblclick', handleCellChange);
                     }
                     setLocalSelection(selection);
+                    console.log("selection1", selection);
+                    console.log("selection2", localMouse);
+                    console.log("selection3", connectedRef);
+                    console.log("selection4", sheetRef);
                     if (connectedRef.current) {
                       okdb.sendPresence({
                         ...selection,
