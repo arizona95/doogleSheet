@@ -88,16 +88,11 @@ function App() {
 
   // callback to recieve status changes of other collaborators
   const presenceCallback = (id, data) => {
-    if (!data) {
+    if (!data || data.situation === 'changeDocumentId') {
       setPresences(prev => {
         const newState = cloneDeep(prev);
         delete newState[id];
         return newState;
-      });
-    } else if (data.situation === 'changeDocumentId') {
-      setDocumentId(data.documentId);
-      setPresences({
-        ...presences,
       });
     } else if (data.user && data.user.id) {
       setPresences(prev => {
@@ -159,7 +154,6 @@ function App() {
         ...{ situation: 'changeDocumentId' },
         ...{ documentId: documentId },
       });
-      setPresences({});
     }
   }, [documentId]);
 
@@ -262,11 +256,8 @@ function App() {
   const handleCellChange = (e) => {
     const cell = e.currentTarget;
     const textarea = cell.lastChild;
-    const resize = () => {
-      setEditingCell(cell);
-      cell.style.height = `${textarea.scrollHeight}px`;
-    };
-    resize();
+    setEditingCell(cell);
+    cell.style.height = `${textarea.scrollHeight}px`;
   };
 
   const handleSheet = (sheet) => {
