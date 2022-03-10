@@ -88,6 +88,7 @@ function App() {
 
   // callback to recieve status changes of other collaborators
   const presenceCallback = (id, data) => {
+  console.log("documentId", documentId);
     if (!data) {
       setPresences(prev => {
         const newState = cloneDeep(prev);
@@ -95,7 +96,7 @@ function App() {
         return newState;
       });
     } else if (data.situation === 'changeDocumentId') {
-      setDocumentId(data.documentId);
+      //setDocumentId(data.documentId);
       setPresences({
         ...presences,
       });
