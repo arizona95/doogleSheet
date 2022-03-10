@@ -65,7 +65,6 @@ function App() {
   const [user, setUser] = useState(null);
 
   const [documentId, setDocumentId] = useState('testsheet');
-  const connectedRef = useRef(false);
   const sheetRef = useRef(null);
   // online status and cursor/selections of other participants
   const [presences, setPresences] = useState({});
@@ -123,7 +122,6 @@ function App() {
       .then(data => {
         // get the data once the doc is opened
         console.log('Loaded doc from server ', data);
-        connectedRef.current = true;
         calculateTotals(data);
         setGrid(data);
 
@@ -149,12 +147,6 @@ function App() {
         console.log('Error opening doc ', err);
       });
 
-    if (connectedRef.current) {
-      okdb.sendPresence({
-        ...{ situation: 'changeDocumentId' },
-        ...{ documentId: documentId },
-      });
-    }
   }, [documentId]);
 
 
@@ -179,7 +171,6 @@ function App() {
           .then(data => {
             // get the data once the doc is opened
             console.log('Loaded doc from server ', data);
-            connectedRef.current = true;
             calculateTotals(data);
             setGrid(data);
 
@@ -240,13 +231,11 @@ function App() {
   */
 
   const updateDoc = (newDoc) => {
-    if (connectedRef.current) {
-      okdb.put(DATA_TYPE, documentId, newDoc)
-        .then(res => {
-          console.log('doc saved, ', res);
-        })
-        .catch((err) => console.log('Error updating doc', err));
-    }
+    okdb.put(DATA_TYPE, documentId, newDoc)
+      .then(res => {
+        console.log('doc saved, ', res);
+      })
+      .catch((err) => console.log('Error updating doc', err));
   };
 
   const otherSelections = Object.keys(presences)
@@ -276,6 +265,11 @@ function App() {
     const form = e.currentTarget;
     const documentId = form.documentId.value;
     setDocumentId(documentId);
+    okdb.sendPresence({
+      situation: 'changeDocumentId',
+      documentId: documentId,
+    });
+
     form.reset();
     e.preventDefault();
   };
@@ -292,7 +286,6 @@ function App() {
         {grid &&
           <Paper>
             <div id="okdb-table-container">
-              <div ref={connectedRef} />
               <div style={{ overflow: 'auto' }}>
                 <OkdbSpreadsheet
                   ref={handleSheet}
@@ -322,15 +315,12 @@ function App() {
                     setLocalSelection(selection);
                     console.log('selection1', selection);
                     console.log('selection2', localMouse);
-                    console.log('selection3', connectedRef);
                     console.log('selection4', sheetRef);
-                    if (connectedRef.current) {
-                      okdb.sendPresence({
-                        ...selection,
-                        ...localMouse,
-                        ...{ documentId: documentId },
-                      });
-                    }
+                    okdb.sendPresence({
+                      ...selection,
+                      ...localMouse,
+                      documentId: documentId,
+                    });
                   }}
                 />
               </div>
