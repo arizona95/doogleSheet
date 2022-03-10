@@ -18,6 +18,7 @@ okdb.handlers().auth((token) => {
         const userName = names[nameIdx];
         const userId = "1" + nameIdx;
         nameIdx = (nameIdx + 1) % names.length;
+        console.log("user_data", { id: userId, name: userName});
         return { id: userId, name: userName}
     }    
     console.log("auth attempt for ", token, " failed");
