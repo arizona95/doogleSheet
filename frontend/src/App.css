@@ -90,3 +90,10 @@ table.data-grid tr td:first-child {
 .title1 {
     font-size: 4em;
 }
+
+.button-holder {
+    padding : 5%;
+    text-align:center;
+    width:100%;
+    display:flex;
+}

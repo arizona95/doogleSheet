@@ -5,6 +5,7 @@ import OkdbSpreadsheet from 'okdb-spreadsheet';
 
 import 'okdb-spreadsheet/lib/styles.css';
 import React, { useEffect, useRef, useState } from 'react';
+import { useCookies } from 'react-cookie';
 import '../node_modules/jspreadsheet-ce/dist/jspreadsheet.css';
 import './App.css';
 import AppUsers from './AppUsers';
@@ -76,6 +77,10 @@ function App() {
     userName:"",
     sheetName:"",
   });
+  const [cookies, setCookie, removeCookie] = useCookies({
+    userName:"",
+    sheetName:"",
+  });
 
   const [pageId, setPageId] = useState(0);
   const [user, setUser] = useState(null);
@@ -128,11 +133,18 @@ function App() {
   };
 
   useEffect(() => {
+      setValues({
+      ...values,
+      ...cookies,
+      });
+  }, []);
+
+  useEffect(() => {
     console.log('update_document_id', documentId);
     document.title = `document Id is ${documentId}`;
     if (pageId ===0 ) return;
     // 1. step - connect
-    okdb.connect(TOKEN)
+    okdb.connect({token:TOKEN, userName: values.userName})
       .then(user => {
         console.log('[okdb] connected as ', user);
         setUser(user);
@@ -213,7 +225,7 @@ function App() {
 
 
   const handleLoginInfoChange = (e) => {
-  console.log(e.target);
+  setCookie(e.target.name, e.target.value);
     e.persist();
     setValues(v => ({
       ...v,
@@ -226,6 +238,26 @@ function App() {
     setPageId(1);
 
   }
+
+  const handleMecroSheetChange = (e) => {
+  const name = e.target.name;
+  setCookie("sheetName", name);
+  setValues(v => ({
+      ...v,
+      sheetName: name,
+  }))
+  if(values.userName !== ""){
+    setDocumentId(name);
+    setPageId(1);
+  };
+
+  }
+
+  useEffect(() => {
+  if(values.pageGo) {
+  setPageId(1);
+  }
+    }, [values]);
 
 
   if (pageId===0){
@@ -269,7 +301,55 @@ function App() {
               </button>
             </form>
           </div>
+
         </div>
+        <div className="button-holder">
+        <button
+            type="submit"
+            name="일일보안결산"
+            className="button is-block is-info"
+            onClick={handleMecroSheetChange}
+            style={{
+                width:"20%",
+                backgroundColor: "#C05780"}}
+          > 일일보안결산 </button>
+          <button
+            type="submit"
+            name="주간업무계획"
+            className="button is-block is-info"
+            onClick={handleMecroSheetChange}
+            style={{
+                width:"20%",
+                backgroundColor: "#FF828B"}}
+          > 주간업무계획 </button>
+          <button
+            type="submit"
+            name="비품조사"
+            className="button is-block is-info"
+            onClick={handleMecroSheetChange}
+            style={{
+                width:"20%",
+                backgroundColor: "#E7C582"}}
+          > 비품조사 </button>
+          <button
+            type="submit"
+            name="기타"
+            className="button is-block is-info"
+            onClick={handleMecroSheetChange}
+            style={{
+                width:"20%",
+                backgroundColor: "#00B0BA"}}
+          > 기타 </button>
+          <button
+            type="submit"
+            name="금주주요소식"
+            className="button is-block is-info"
+            onClick={handleMecroSheetChange}
+            style={{
+                width:"20%",
+                backgroundColor: "#0065A2"}}
+          > 금주주요소식 </button>
+          </div>
       </div>
     </div>)
 
@@ -289,6 +369,7 @@ function App() {
                   valueRenderer={cell => cell.value}
                   overflow="clip"
                   onCellsChanged={changes => {
+                    console.log("changes", changes);
                     const newGrid = grid.map(row => [...row]);
                     changes.forEach(({ cell, row, col, value }) => {
                       newGrid[row][col] = { ...grid[row][col], value };
