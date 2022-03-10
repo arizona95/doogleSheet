@@ -65,7 +65,6 @@ function App() {
   const [user, setUser] = useState(null);
 
   const [documentId, setDocumentId] = useState('testsheet');
-  const [documentIdTemp, setDocumentIdTemp] = useState('testsheet');
   const connectedRef = useRef(false);
   const sheetRef = useRef(null);
   // online status and cursor/selections of other participants
@@ -89,15 +88,18 @@ function App() {
 
   // callback to recieve status changes of other collaborators
   const presenceCallback = (id, data) => {
-    console.log("presenceCallback1", documentId)
-    if (!data || data.situation ==='changeDocumentId') { // empty data means that the user is disconnected
+    if (!data) {
       setPresences(prev => {
         const newState = cloneDeep(prev);
-        console.log("data is empty!", id, prev);
         delete newState[id];
         return newState;
       });
-    }else if (data.user && data.user.id) {
+    } else if (data.situation === 'changeDocumentId') {
+      setDocumentId(data.documentId);
+      setPresences({
+        ...presences,
+      });
+    } else if (data.user && data.user.id) {
       setPresences(prev => {
         const index = Object.keys(prev).findIndex(item => item === id);
         const colors = ['#5552FF', '#0FA956'];
@@ -122,8 +124,7 @@ function App() {
       {
         onChange: updateCallback,
         onPresence: presenceCallback,
-      },
-    )
+      })
       .then(data => {
         // get the data once the doc is opened
         console.log('Loaded doc from server ', data);
@@ -148,23 +149,19 @@ function App() {
           // Will be implemented in the next section
           createResizableColumn(col, resizer);
         });
-
       })
       .catch(err => {
         console.log('Error opening doc ', err);
       });
 
-      if (connectedRef.current) {
+    if (connectedRef.current) {
       okdb.sendPresence({
-            ...{situation:"changeDocumentId"},
-            ...{documentId:documentId},
-          })
-        setPresences({});
-
-      };
-
+        ...{ situation: 'changeDocumentId' },
+        ...{ documentId: documentId },
+      });
+      setPresences({});
+    }
   }, [documentId]);
-
 
 
   useEffect(() => {
@@ -284,19 +281,23 @@ function App() {
     setWasEditing(currentEditing);
   };
 
+  const handleDocumentIdChange = (e) => {
+    const form = e.currentTarget;
+    const documentId = form.documentId.value;
+    setDocumentId(documentId);
+    form.reset();
+    e.preventDefault();
+  };
+
   return (
     <Grid container spacing={3}>
       <Grid item md={10}>
         <h1 align="center">{documentId}</h1>
         sheet:
-        <input
-          type="text" placeholder="Put Document Id" id="documentId"
-          onChange={e => {
-            setDocumentIdTemp(e.target.value);
-          }} />
-        <input type="submit" onClick={e => {
-          setDocumentId(documentIdTemp);
-        }} value="go" />
+        <form onSubmit={handleDocumentIdChange}>
+          <input type="text" name="documentId" placeholder="Put Document Id" id="documentId" />
+          <button type="submit">Go</button>
+        </form>
         {grid &&
           <Paper>
             <div id="okdb-table-container">
@@ -328,15 +329,15 @@ function App() {
                       cell.addEventListener('dblclick', handleCellChange);
                     }
                     setLocalSelection(selection);
-                    console.log("selection1", selection);
-                    console.log("selection2", localMouse);
-                    console.log("selection3", connectedRef);
-                    console.log("selection4", sheetRef);
+                    console.log('selection1', selection);
+                    console.log('selection2', localMouse);
+                    console.log('selection3', connectedRef);
+                    console.log('selection4', sheetRef);
                     if (connectedRef.current) {
                       okdb.sendPresence({
                         ...selection,
                         ...localMouse,
-                        ...{documentId:documentId},
+                        ...{ documentId: documentId },
                       });
                     }
                   }}
