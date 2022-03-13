@@ -1,3 +1,7 @@
+
+
+
+
 const OkdbServer = require("okdb-server");
 
 // create and start server on 7899 port by default
@@ -24,6 +28,11 @@ okdb.handlers().auth((getData) => {
     return null;
 });
 
+okdb.handlers().save((dataType, documentId, version, data) => {
+    console.log("save handler ", dataType, documentId,  version, data );
+    //JSON.stringify(data)
+    // update your database
+});
 
 // Handling Ctrl-C (workaround for Windows)
 if (process.platform === "win32") {

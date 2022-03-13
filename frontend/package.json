@@ -11,6 +11,7 @@
     "bulma": "^0.9.3",
     "jspreadsheet-ce": "^4.10.1",
     "lodash": "^4.17.19",
+    "node-postgres": "^0.6.2",
     "okdb-client": "^1.2.3",
     "okdb-spreadsheet": "^1.0.1",
     "react": "^16.13.1",
@@ -18,7 +19,8 @@
     "react-dom": "^16.13.1",
     "react-router-dom": "^6.2.2",
     "react-scripts": "^3.4.3",
-    "uuid": "^8.0.0"
+    "uuid": "^8.0.0",
+    "x-data-spreadsheet": "^1.1.9"
   },
   "scripts": {
     "start": "react-scripts start",

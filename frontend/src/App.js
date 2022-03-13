@@ -2,17 +2,17 @@ import { Grid, Paper } from '@material-ui/core';
 import cloneDeep from 'lodash/cloneDeep';
 import OkdbClient from 'okdb-client';
 import OkdbSpreadsheet from 'okdb-spreadsheet';
-
 import 'okdb-spreadsheet/lib/styles.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { useCookies } from 'react-cookie';
-import '../node_modules/jspreadsheet-ce/dist/jspreadsheet.css';
+import "x-data-spreadsheet/dist/xspreadsheet.css";
 import './App.css';
 import AppUsers from './AppUsers';
-import initialGrid from './initialGrid';
-import { calculateTotals } from './utils';
 import "bulma/css/bulma.css";
 import navy_img from "./navy.svg";
+import Spreadsheet from "x-data-spreadsheet";
+
+import exampleData from "./exampleData";
 
 import {
   BrowserRouter as Router,
@@ -22,53 +22,11 @@ import {
 } from "react-router-dom";
 
 
-// location of your server
 const HOST = 'http://localhost:7899';
-// token for user authentication, handled by the auth handler on the server side
 const TOKEN = '12345';
 const okdb = new OkdbClient(HOST);
-
-// data type, typically corresponds to the table name
+var xSheet ;
 const DATA_TYPE = 'todo-tasks';
-// id of the object to be edited collaboratively
-//const DOCUMENT_ID = "spreadsheet-2"; 
-
-
-const createResizableColumn = function (col, resizer) {
-  // Track the current position of mouse
-
-  let x = 0;
-  let w = 0;
-
-  const mouseDownHandler = function (e) {
-    // Get the current mouse position
-    x = e.clientX;
-
-    // Calculate the current width of column
-    const styles = window.getComputedStyle(col);
-    w = parseInt(styles.width, 10);
-
-    // Attach listeners for document's events
-    document.addEventListener('mousemove', mouseMoveHandler);
-    document.addEventListener('mouseup', mouseUpHandler);
-  };
-
-  const mouseMoveHandler = function (e) {
-    // Determine how far the mouse has been moved
-    const dx = e.clientX - x;
-
-    // Update the width of column
-    col.style.width = `${w + dx}px`;
-  };
-
-  // When user releases the mouse, remove the existing event listeners
-  const mouseUpHandler = function () {
-    document.removeEventListener('mousemove', mouseMoveHandler);
-    document.removeEventListener('mouseup', mouseUpHandler);
-  };
-
-  resizer.addEventListener('mousedown', mouseDownHandler);
-};
 
 
 function App() {
@@ -82,10 +40,12 @@ function App() {
     sheetName:"",
   });
 
+
   const [pageId, setPageId] = useState(0);
   const [user, setUser] = useState(null);
-
-  const [documentId, setDocumentId] = useState('testsheet');
+  const [read, setRead] = useState(false);
+  const [sheetData, setSheetData] = useState(exampleData);
+  const [documentId, setDocumentId] = useState('login');
   const sheetRef = useRef(null);
   // online status and cursor/selections of other participants
   const [presences, setPresences] = useState({});
@@ -101,21 +61,24 @@ function App() {
 
   // callback to receive data changes from others
   const updateCallback = (data, meta) => {
+    console.log("updateCallback ", data, meta);
     const newData = cloneDeep(data);
-    calculateTotals(newData);
     setGrid(newData);
   };
 
   // callback to recieve status changes of other collaborators
   const presenceCallback = (id, data) => {
-  console.log("documentId", documentId)
-    if (!data || data.situation === 'changeDocumentId') {
+  console.log("presenceCallback", documentId,id, data);
+  if (!data) {
+  console.log("user deleted!")
       setPresences(prev => {
         const newState = cloneDeep(prev);
         delete newState[id];
         return newState;
       });
-    } else if (data.user && data.user.id) {
+
+      return;
+     } else if (data.user && data.user.id) {
       setPresences(prev => {
         const index = Object.keys(prev).findIndex(item => item === id);
         const colors = ['#5552FF', '#0FA956'];
@@ -130,7 +93,38 @@ function App() {
         return newState;
       });
     }
+
+    if(data.situation === "changed") {
+        //xSheet.loadData(data.data);
+    } else if (data.situation === "selected") {
+
+        /* setPresences(prev => {
+      console.log("keys",prev, Object.keys(prev) );
+        const index = Object.keys(prev).findIndex(item => item === id);
+        const colors = ['#5552FF', '#0FA956'];
+        const colorIdx = index % colors.length;
+        const color = colors[colorIdx];
+        const newState = cloneDeep(prev);
+        newState[id] = {
+          id,
+          color,
+          ...data,
+        };
+        return newState;
+
+      });*/
+
+    }
+
+    /*else if (data.situation === "edited") {
+        console.log("here!");
+        //xSheet.loadData(exampleData2);
+        xSheet.cellText(data.selection.start.ri, data.selection.start.ci, data.text).reRender();
+     }*/
+
   };
+
+
 
   useEffect(() => {
       setValues({
@@ -141,46 +135,127 @@ function App() {
 
   useEffect(() => {
     console.log('update_document_id', documentId);
-    document.title = `document Id is ${documentId}`;
+    document.title = `${documentId}`;
     if (pageId ===0 ) return;
     // 1. step - connect
     okdb.connect({token:TOKEN, userName: values.userName})
       .then(user => {
-        console.log('[okdb] connected as ', user);
+        console.log('[okdb] connected as ', user, documentId);
         setUser(user);
         // 2. step - open document for collaborative editing   
         okdb.open(
           DATA_TYPE, // collection name
           documentId,
-          initialGrid, // default value to save if doesn't exist yet
+          {}, // default value to save if doesn't exist yet
           {
             onChange: updateCallback,
             onPresence: presenceCallback,
           },
-        )
-          .then(data => {
+        ).then(openedData => {
             // get the data once the doc is opened
-            console.log('Loaded doc from server ', data);
-            calculateTotals(data);
-            setGrid(data);
+            console.log('Loaded doc from server ', openedData);
 
-            const table = document.getElementById('resizeMe');
+            xSheet = new Spreadsheet("#x-spreadsheet-demo",
+            {
+                mode: 'edit', // edit | read
+                  showToolbar: true,
+                  showGrid: true,
+                  showContextmenu: true,
+                  view: {
+                    height: () => document.documentElement.clientHeight,
+                    width: () => document.documentElement.clientWidth*10/12,
+                  },
+                  row: {
+                    len: 100,
+                    height: 25,
+                  },
+                  col: {
+                    len: 26,
+                    width: 100,
+                    indexWidth: 60,
+                    minWidth: 60,
+                  },
+                  style: {
+                    bgcolor: '#ffffff',
+                    align: 'left',
+                    valign: 'middle',
+                    textwrap: false,
+                    strike: false,
+                    underline: false,
+                    color: '#0a0a0a',
+                    font: {
+                      name: 'Helvetica',
+                      size: 10,
+                      bold: false,
+                      italic: false,
+                    },
+                  },
+            }).loadData(openedData).change(changedData => {
 
-            // Query all headers
-            const cols = table.querySelectorAll('td');
 
-            // Loop over them
-            [].forEach.call(cols, function (col) {
-              // Create a resizer element
-              const resizer = document.createElement('div');
-              resizer.classList.add('resizer');
+              console.log("okdb.put",DATA_TYPE, documentId ,changedData);
 
-              // Add a resizer element to the column
-              col.appendChild(resizer);
+              const newData = cloneDeep(changedData);
 
-              // Will be implemented in the next section
-              createResizableColumn(col, resizer);
-            });
+              okdb.put(DATA_TYPE, documentId, changedData).then(res =>{
+                console.log("doc saved, ", res);
+                /*
+
+                  okdb.sendPresence({
+                          situation: "changed",
+                          data:changedData
+                        });*/
+              }).catch((err) =>  console.log("Error updating doc", err));
+
+
+              //  1.  데이터가 작성 완료되었을때
+              //  2.  postgresql 에 데이터저장
+              // 3. okdb precense 로 사용자들한테 뿌림
+              // 4. precense callback 으로 loaddata 다시함
+              //
+              //setSheetData(changedData);
+                // save data to db
+              });
+
+              xSheet.validate();
+
+              xSheet.on('cell-selected', (cell, ri, ci) => {
+                okdb.sendPresence({
+                      situation: 'selected',
+                      cell:cell,
+                      selection: {
+                        start: {ri:ri,ci:ci},
+                        end:{ri:ri,ci:ci},
+                      },
+                    });
+                });
+
+              xSheet.on('cells-selected', (cell, { sri, sci, eri, eci }) => {
+                okdb.sendPresence({
+                      situation: 'selected',
+                      cell:cell,
+                      selection: {
+                        cell:cell,
+                        start:{ri:sri,ci:sci},
+                        end:{ri:eri,ci:eci},
+                      },
+                    });
+                });
+              // edited on cell
+              /*
+              xSheet.on('cell-edited', (text, ri, ci) => {
+              okdb.sendPresence({
+                      situation: 'edited',
+                      text:text,
+                      selection: {
+                        start: {ri:ri,ci:ci},
+                        end:{ri:ri,ci:ci},
+                      },
+                    });
+              });*/
+
+
+
 
           })
           .catch(err => {
@@ -212,6 +287,7 @@ function App() {
   };
 
   const handleSheet = (sheet) => {
+  console.log("handleSheet", sheet);
     if (sheet === null) return;
 
     sheetRef.current = sheet;
@@ -222,6 +298,12 @@ function App() {
     }
     setWasEditing(currentEditing);
   };
+
+   const handleXSheet = (sheet) => {
+   if (sheet === null) return;
+   //console.log("xSheet",xSheet);
+    //sheet.state.cellText(5, 5, 'xxxx').cellText(6, 5, 'yyy').reRender();
+   }
 
 
   const handleLoginInfoChange = (e) => {
@@ -258,6 +340,7 @@ function App() {
   setPageId(1);
   }
     }, [values]);
+
 
 
   if (pageId===0){
@@ -359,51 +442,11 @@ function App() {
     <Grid container spacing={3}>
       <Grid item md={10}>
         <h1 className = "title1" align="center">{documentId}</h1>
-        {grid &&
-          <Paper>
-            <div id="okdb-table-container">
-              <div style={{ overflow: 'auto' }}>
-                <OkdbSpreadsheet
-                  ref={handleSheet}
-                  data={grid}
-                  valueRenderer={cell => cell.value}
-                  overflow="clip"
-                  onCellsChanged={changes => {
-                    console.log("changes", changes);
-                    const newGrid = grid.map(row => [...row]);
-                    changes.forEach(({ cell, row, col, value }) => {
-                      newGrid[row][col] = { ...grid[row][col], value };
-                    });
-                    calculateTotals(newGrid);
-                    setGrid(newGrid);
-                    updateDoc(newGrid);
-                  }}
-                  selections={otherSelections}
-                  onSelect={(selection) => {
-                    const sheet = sheetRef.current;
-                    if (sheet !== null) {
-                      const { i, j } = selection.start;
-                      const cell = sheet.dgDom.querySelector(`tbody tr:nth-child(${i + 1}) td:nth-child(${j + 1})`);
-                      cell.removeEventListener('keydown', handleCellChange);
-                      cell.removeEventListener('dblclick', handleCellChange);
-                      cell.addEventListener('keydown', handleCellChange);
-                      cell.addEventListener('dblclick', handleCellChange);
-                    }
-                    setLocalSelection(selection);
-                    console.log('selection1', selection);
-                    console.log('selection2', localMouse);
-                    console.log('selection4', sheetRef);
-                    okdb.sendPresence({
-                      ...selection,
-                      ...localMouse,
-                      documentId: documentId,
-                    });
-                  }}
-                />
-              </div>
-            </div>
-          </Paper>
-        }
+        <div
+        style={{ height: "100%", width: "auto" }}
+        id="x-spreadsheet-demo"
+      ></div>
+
       </Grid>
       <Grid item md={2}>
         <div className="online-panel">
