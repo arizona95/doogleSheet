@@ -3,11 +3,11 @@ import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
 import * as serviceWorker from './serviceWorker';
-import HwpViewerPage from './HwpViewerPage'
+//import HwpViewerPage from './HwpViewerPage'
 
 ReactDOM.render(
   <React.StrictMode>
-    <HwpViewerPage />
+    <App />
   </React.StrictMode>,
   document.getElementById('root')
 );
