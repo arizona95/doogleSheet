@@ -11,7 +11,6 @@ import AppUsers from './AppUsers';
 import "bulma/css/bulma.css";
 import navy_img from "./navy.svg";
 import Spreadsheet from "x-data-spreadsheet";
-
 import exampleData from "./exampleData";
 
 import {
@@ -97,6 +96,14 @@ function App() {
     if(data.situation === "changed") {
         xSheet.loadData(data.data);
     } else if (data.situation === "selected") {
+      console.log("selected", data);
+      const colors = ['#5552FF', '#0FA956'];
+      const index = data.user.id;
+      const colorIdx = index % colors.length;
+
+      //const sdom = document.getElementById("x-spreadsheet-demo").querySelector(`tbody tr:nth-child(${1}) td:nth-child(${1})`);
+      //console.log("sdom",sdom);
+      //xSheet.cellText(data.selection.start.ri, data.selection.start.ci, ).reRender();
 
         /* setPresences(prev => {
       console.log("keys",prev, Object.keys(prev) );
