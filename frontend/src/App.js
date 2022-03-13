@@ -95,7 +95,7 @@ function App() {
     }
 
     if(data.situation === "changed") {
-        //xSheet.loadData(data.data);
+        xSheet.loadData(data.data);
     } else if (data.situation === "selected") {
 
         /* setPresences(prev => {
@@ -146,7 +146,7 @@ function App() {
         okdb.open(
           DATA_TYPE, // collection name
           documentId,
-          {}, // default value to save if doesn't exist yet
+          {data:JSON.stringify(exampleData)}, // default value to save if doesn't exist yet
           {
             onChange: updateCallback,
             onPresence: presenceCallback,
@@ -190,21 +190,21 @@ function App() {
                       italic: false,
                     },
                   },
-            }).loadData(openedData).change(changedData => {
+            }).loadData(JSON.parse(openedData.data)).change(changedData => {
 
 
               console.log("okdb.put",DATA_TYPE, documentId ,changedData);
 
               const newData = cloneDeep(changedData);
 
-              okdb.put(DATA_TYPE, documentId, changedData).then(res =>{
+              okdb.put(DATA_TYPE, documentId, {data:JSON.stringify(changedData)}).then(res =>{
                 console.log("doc saved, ", res);
-                /*
+
 
                   okdb.sendPresence({
                           situation: "changed",
                           data:changedData
-                        });*/
+                        });
               }).catch((err) =>  console.log("Error updating doc", err));
 
 
