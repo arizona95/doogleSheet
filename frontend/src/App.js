@@ -168,6 +168,7 @@ function App() {
                   showToolbar: true,
                   showGrid: true,
                   showContextmenu: true,
+                  showBottomBar: false,
                   view: {
                     height: () => document.documentElement.clientHeight,
                     width: () => document.documentElement.clientWidth*10/12,
