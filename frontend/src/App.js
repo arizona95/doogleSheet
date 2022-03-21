@@ -11,12 +11,13 @@ import "bulma/css/bulma.css";
 import navy_img from "./navy.svg";
 import Spreadsheet from "x-data-spreadsheet";
 import exampleData from "./exampleData";
+import queryString from "query-string";
 
 import {
   BrowserRouter as Router,
-  Switch,
   Route,
-  Redirect
+  Routes,
+  Redirect,
 } from "react-router-dom";
 
 
@@ -63,6 +64,7 @@ function App() {
     const newData = cloneDeep(data);
     setGrid(newData);
   };
+
 
   // callback to recieve status changes of other collaborators
   const presenceCallback = (id, data) => {
@@ -350,8 +352,9 @@ function App() {
 
 
 
-  if (pageId===0){
-  return(
+
+  if (pageId===0){ return (
+
       <div className="section is-fullheight">
       <div className="container">
       <img  src={navy_img} width="20%"/>
@@ -469,7 +472,7 @@ function App() {
       </Grid>
     </Grid>
 
-  );}
+  ) }
 
 
 }

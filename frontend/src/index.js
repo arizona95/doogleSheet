@@ -2,12 +2,24 @@ import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
 import App from './App';
+import Survey from './Survey';
 import * as serviceWorker from './serviceWorker';
 //import HwpViewerPage from './HwpViewerPage'
+import {
+  BrowserRouter as Router,
+  Route,
+  Routes,
+  Redirect,
+} from "react-router-dom";
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+      <Router>
+        <Routes>
+            <Route  exact path = "/"   element={<App />}   />
+            <Route  path = "/Survey"   element={<Survey />}   />
+        </Routes>
+      </Router>
   </React.StrictMode>,
   document.getElementById('root')
 );
