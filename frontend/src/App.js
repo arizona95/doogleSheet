@@ -1,7 +1,6 @@
 import { Grid, Paper } from '@material-ui/core';
 import cloneDeep from 'lodash/cloneDeep';
 import OkdbClient from 'okdb-client';
-import OkdbSpreadsheet from 'okdb-spreadsheet';
 import 'okdb-spreadsheet/lib/styles.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { useCookies } from 'react-cookie';
