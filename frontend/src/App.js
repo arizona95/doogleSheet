@@ -1,8 +1,6 @@
 import { Grid, Paper } from '@material-ui/core';
 import cloneDeep from 'lodash/cloneDeep';
 import OkdbClient from 'okdb-client';
-import OkdbSpreadsheet from 'okdb-spreadsheet';
-import 'okdb-spreadsheet/lib/styles.css';
 import React, { useEffect, useRef, useState } from 'react';
 import { useCookies } from 'react-cookie';
 import "x-data-spreadsheet/dist/xspreadsheet.css";
@@ -12,7 +10,9 @@ import "bulma/css/bulma.css";
 import navy_img from "./navy.svg";
 import Spreadsheet from "x-data-spreadsheet";
 import exampleData from "./exampleData";
-
+import shortCutList from "./shortCutList";
+import ExportXLSX from "./ExportXLSX";
+import ImportXLSX from "./ImportXLSX";
 import {
   BrowserRouter as Router,
   Switch,
@@ -49,7 +49,6 @@ function App() {
   // online status and cursor/selections of other participants
   const [presences, setPresences] = useState({});
   // spreadsheet data
-  const [grid, setGrid] = useState(null);
   const [wasEditing, setWasEditing] = useState(false);
   const [editingCell, setEditingCell] = useState(undefined);
 
@@ -59,17 +58,18 @@ function App() {
   const [localMouse, setLocalMouse] = useState({});
 
   // callback to receive data changes from others
+  /*
   const updateCallback = (data, meta) => {
     console.log("updateCallback ", data, meta);
     const newData = cloneDeep(data);
-    setGrid(newData);
-  };
+    setSheetData(newData);
+  };*/
 
   // callback to recieve status changes of other collaborators
   const presenceCallback = (id, data) => {
-  console.log("presenceCallback", documentId,id, data);
+  //console.log("presenceCallback", documentId,id, data);
   if (!data) {
-  console.log("user deleted!")
+  //console.log("user deleted!")
       setPresences(prev => {
         const newState = cloneDeep(prev);
         delete newState[id];
@@ -96,7 +96,7 @@ function App() {
     if(data.situation === "changed") {
         xSheet.loadData(data.data);
     } else if (data.situation === "selected") {
-      console.log("selected", data);
+      //console.log("selected", data);
       const colors = ['#5552FF', '#0FA956'];
       const index = data.user.id;
       const colorIdx = index % colors.length;
@@ -141,13 +141,13 @@ function App() {
   }, []);
 
   useEffect(() => {
-    console.log('update_document_id', documentId);
+    //console.log('update_document_id', documentId);
     document.title = `${documentId}`;
     if (pageId ===0 ) return;
     // 1. step - connect
     okdb.connect({token:TOKEN, userName: values.userName})
       .then(user => {
-        console.log('[okdb] connected as ', user, documentId);
+        //console.log('[okdb] connected as ', user, documentId);
         setUser(user);
         // 2. step - open document for collaborative editing   
         okdb.open(
@@ -155,12 +155,11 @@ function App() {
           documentId,
           {data:JSON.stringify(exampleData)}, // default value to save if doesn't exist yet
           {
-            onChange: updateCallback,
             onPresence: presenceCallback,
           },
         ).then(openedData => {
             // get the data once the doc is opened
-            console.log('Loaded doc from server ', openedData);
+            //console.log('Loaded doc from server ', openedData);
 
             xSheet = new Spreadsheet("#x-spreadsheet-demo",
             {
@@ -168,8 +167,9 @@ function App() {
                   showToolbar: true,
                   showGrid: true,
                   showContextmenu: true,
+                  showBottomBar: false,
                   view: {
-                    height: () => document.documentElement.clientHeight,
+                    height: () => document.documentElement.clientHeight*10/12,
                     width: () => document.documentElement.clientWidth*10/12,
                   },
                   row: {
@@ -200,12 +200,12 @@ function App() {
             }).loadData(JSON.parse(openedData.data)).change(changedData => {
 
 
-              console.log("okdb.put",DATA_TYPE, documentId ,changedData);
-
-              const newData = cloneDeep(changedData);
+              //console.log("okdb.put",DATA_TYPE, documentId ,changedData);
 
               okdb.put(DATA_TYPE, documentId, {data:JSON.stringify(changedData)}).then(res =>{
-                console.log("doc saved, ", res);
+                //console.log("doc saved, ", res);
+
+                setSheetData(changedData);
 
 
                   okdb.sendPresence({
@@ -274,13 +274,6 @@ function App() {
       });
   }, [documentId]);
 
-  const updateDoc = (newDoc) => {
-    okdb.put(DATA_TYPE, documentId, newDoc)
-      .then(res => {
-        console.log('doc saved, ', res);
-      })
-      .catch((err) => console.log('Error updating doc', err));
-  };
 
   const otherSelections = Object.keys(presences)
     .map(presenceId => presences[presenceId])
@@ -349,7 +342,6 @@ function App() {
     }, [values]);
 
 
-
   if (pageId===0){
   return(
       <div className="section is-fullheight">
@@ -394,51 +386,21 @@ function App() {
 
         </div>
         <div className="button-holder">
+        { shortCutList.map( (data, idx) =>
         <button
+            key = {idx}
             type="submit"
-            name="일일보안결산"
+            name= {data.name}
             className="button is-block is-info"
             onClick={handleMecroSheetChange}
             style={{
                 width:"20%",
-                backgroundColor: "#C05780"}}
-          > 일일보안결산 </button>
-          <button
-            type="submit"
-            name="주간업무계획"
-            className="button is-block is-info"
-            onClick={handleMecroSheetChange}
-            style={{
-                width:"20%",
-                backgroundColor: "#FF828B"}}
-          > 주간업무계획 </button>
-          <button
-            type="submit"
-            name="비품조사"
-            className="button is-block is-info"
-            onClick={handleMecroSheetChange}
-            style={{
-                width:"20%",
-                backgroundColor: "#E7C582"}}
-          > 비품조사 </button>
-          <button
-            type="submit"
-            name="기타"
-            className="button is-block is-info"
-            onClick={handleMecroSheetChange}
-            style={{
-                width:"20%",
-                backgroundColor: "#00B0BA"}}
-          > 기타 </button>
-          <button
-            type="submit"
-            name="금주주요소식"
-            className="button is-block is-info"
-            onClick={handleMecroSheetChange}
-            style={{
-                width:"20%",
-                backgroundColor: "#0065A2"}}
-          > 금주주요소식 </button>
+                backgroundColor: data.color
+            }}
+          > {data.name}</button>
+
+        )
+          }
           </div>
       </div>
     </div>)
@@ -447,12 +409,18 @@ function App() {
   else{
   return (
     <Grid container spacing={3}>
+
       <Grid item md={10}>
         <h1 className = "title1" align="center">{documentId}</h1>
-        <div
-        style={{ height: "100%", width: "auto" }}
-        id="x-spreadsheet-demo"
-      ></div>
+
+        <input type="file" accept=".xls, .xlsx" onChange={(fileObject) => {ImportXLSX(xSheet, fileObject)
+        }} />
+
+        <button onClick={() => ExportXLSX(xSheet,documentId)}>export</button>
+          <div
+            style={{ height: "83%", width: "auto" }}
+            id="x-spreadsheet-demo"
+        ></div>
 
       </Grid>
       <Grid item md={2}>
