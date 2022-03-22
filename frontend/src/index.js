@@ -1,8 +1,8 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import './index.css';
-import App from './App';
-import Survey from './Survey';
+import ExcelPage from './excel/ExcelPage';
+import SurveyPage from './survey/SurveyPage';
 import * as serviceWorker from './serviceWorker';
 //import HwpViewerPage from './HwpViewerPage'
 import {
@@ -16,8 +16,8 @@ ReactDOM.render(
   <React.StrictMode>
       <Router>
         <Routes>
-            <Route  exact path = "/"   element={<App />}   />
-            <Route  path = "/Survey"   element={<Survey />}   />
+            <Route  path = "/"   element={<ExcelPage />}   />
+            <Route  path = "/survey/*"   element={<SurveyPage />}   />
         </Routes>
       </Router>
   </React.StrictMode>,

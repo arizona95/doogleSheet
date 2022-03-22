@@ -13,6 +13,7 @@
     "jspreadsheet-ce": "^4.10.1",
     "lodash": "^4.17.19",
     "node-postgres": "^0.6.2",
+    "nouislider": "^15.5.1",
     "okdb-client": "^1.2.3",
     "okdb-spreadsheet": "^1.0.1",
     "react": "^16.13.1",
@@ -20,8 +21,12 @@
     "react-dom": "^16.13.1",
     "react-router-dom": "^6.2.2",
     "react-scripts": "^3.4.3",
+    "survey-creator": "^1.9.20",
+    "survey-react": "^1.9.20",
+    "surveyjs-widgets": "^1.9.20",
     "uuid": "^8.0.0",
-    "x-data-spreadsheet": "^1.1.9"
+    "x-data-spreadsheet": "^1.1.9",
+    "xlsx": "^0.18.4"
   },
   "scripts": {
     "start": "react-scripts start",
