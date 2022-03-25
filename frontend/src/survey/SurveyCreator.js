@@ -43,6 +43,7 @@ widgets.sortablejs(Survey);
 
 export default class SurveyCreator extends Component {
   surveyCreator;
+  initialCnt=false;
   componentDidMount() {
     let options = {
       questionTypes: [
@@ -104,6 +105,8 @@ export default class SurveyCreator extends Component {
     //   }
     // });
 
+
+
     this.surveyCreator.saveSurveyFunc = this.saveMySurvey;
     this.surveyCreator.showToolbox = "right";
     this.surveyCreator.showPropertyGrid = "right";
@@ -124,15 +127,21 @@ export default class SurveyCreator extends Component {
     //   }
     // ]);
   }
+
+  componentWillReceiveProps(nextProps) {
+  //console.log("nextProps", JSON.stringify(nextProps.init));
+    if(nextProps.init !== null & this.initialCnt === false){
+        this.surveyCreator.text= JSON.stringify(nextProps.init);
+        //console.log("nextProps", nextProps.init);
+        this.initialCnt=true;
+    }
+  }
+
   render() {
-    console.log(
-      "Survey.onUpdateQuestionCssClasses",
-      Survey.onUpdateQuestionCssClasses
-    );
     return <div id="surveyCreatorContainer" />;
   }
   saveMySurvey = () => {
-    console.log(JSON.stringify(this.surveyCreator.text));
-    this.props.handleSave(this.surveyCreator.text);
+    //console.log(JSON.stringify(this.surveyCreator.text));
+    this.props.handleSurveyFormSave(this.surveyCreator.text);
   };
 }

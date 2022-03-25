@@ -1,10 +1,8 @@
 import React, { Component } from "react";
 import * as Survey from "survey-react";
 import * as widgets from "surveyjs-widgets";
-
 import "nouislider/dist/nouislider.css";
 import "survey-react/modern.css";
-
 Survey.StylesManager.applyTheme("modern");
 
 const myCss = {
@@ -17,13 +15,11 @@ const myCss = {
 widgets.nouislider(Survey);
 widgets.sortablejs(Survey);
 
+
 export default class SurveyView extends Component {
-  onComplete = json => {
-    console.log("json", json.data);
-  };
   cssTest = (survey, options) => {
     const classes = options.cssClasses;
-    console.log(classes);
+    //console.log(classes);
 
     // classes.root = "sq-root";
     classes.title = "sq-title";
@@ -32,18 +28,19 @@ export default class SurveyView extends Component {
     classes.header = "sq-header";
   };
   render() {
-    const { json } = this.props;
+    const { init } = this.props;
+    console.log("surv_json", init);
 
-    var model = new Survey.Model(json);
+    var model = new Survey.Model(init);
 
-    if (!json) {
+    if (!init) {
       return <p>No Form</p>;
     } else {
       return (
         <Survey.Survey
           model={model}
           css={myCss}
-          onComplete={this.onComplete}
+          onComplete={this.props.handleSurveyResult}
           onUpdateQuestionCssClasses={this.cssTest}
         />
       );

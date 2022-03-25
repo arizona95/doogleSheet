@@ -97,3 +97,136 @@ table.data-grid tr td:first-child {
     width:100%;
     display:flex;
 }
+
+
+
+
+
+body {
+  margin: 20px;
+}
+.B1:hover,
+.B1:focus {
+  box-shadow: 0 0.5em 0.5em -0.4em var(--hover);
+  -webkit-transform: translateY(-0.25em);
+          transform: translateY(-0.25em);
+}
+
+.B2:hover,
+.B2:focus {
+  box-shadow: 0 0.5em 0.5em -0.4em var(--hover);
+  -webkit-transform: translateY(-0.25em);
+          transform: translateY(-0.25em);
+}
+
+.B3:hover,
+.B3:focus {
+  box-shadow: 0 0.5em 0.5em -0.4em var(--hover);
+  -webkit-transform: translateY(-0.25em);
+          transform: translateY(-0.25em);
+}
+
+.B4:hover,
+.B4:focus {
+  box-shadow: 0 0.5em 0.5em -0.4em var(--hover);
+  -webkit-transform: translateY(-0.25em);
+          transform: translateY(-0.25em);
+}
+
+.B5:hover,
+.B5:focus {
+  box-shadow: 0 0.5em 0.5em -0.4em var(--hover);
+  -webkit-transform: translateY(-0.25em);
+          transform: translateY(-0.25em);
+}
+
+.B6:hover,
+.B6:focus {
+  box-shadow: 0 0.5em 0.5em -0.4em var(--hover);
+  -webkit-transform: translateY(-0.25em);
+          transform: translateY(-0.25em);
+}
+
+.B7:hover,
+.B7:focus {
+  box-shadow: 0 0.5em 0.5em -0.4em var(--hover);
+  -webkit-transform: translateY(-0.25em);
+          transform: translateY(-0.25em);
+}
+
+
+/*bouton fill couleur*/
+.B1 {
+  --color: #a972cb;
+  --hover: #a972cb;
+}
+
+.B2 {
+  --color: #1565c0;
+  --hover: #1565c0;
+}
+
+.B3 {
+  --color: #ff7f82;
+  --hover: #ff7f82;
+}
+
+.B4 {
+  --color: #ffa260;
+  --hover: #ffa260;
+}
+
+.B5 {
+  --color: #ef6eae;
+  --hover: #ef6eae;
+}
+
+.B6 {
+  --color: #8fc866;
+  --hover: #8fc866;
+}
+
+.B7 {
+  --color: #19bc8b;
+  --hover: #19bc8b;
+}
+
+button {
+  color: var(--color);
+  -webkit-transition: 0.25s;
+  transition: 0.25s;
+}
+button:hover, button:focus {
+  border-color: var(--hover);
+}
+
+
+button{
+  background: none;
+  border: 2px solid;
+  font: inherit;
+  line-height: 1;
+  margin-left: 0em !important;
+  margin-right:0.7em !important;
+  padding: 0.5em 1em;
+}
+
+.input-file-button{
+  background: none;
+  border: 2px solid;
+  border-color : #1ab394;
+  font: inherit;
+  line-height: 1;
+  margin-left: 1em !important;
+  margin-right:0.7em !important;
+  margin-bottom: 0.5em !important;
+  padding: 0.34em 1em;
+
+  color: #1ab394;
+  -webkit-transition: 0.25s;
+  transition: 0.25s;
+}
+
+.myCss1 path {
+    stroke : #ef6eae;
+}

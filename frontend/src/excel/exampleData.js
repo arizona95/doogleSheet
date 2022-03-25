@@ -1,6 +1,18 @@
 var data = {
   name: "sheet1",
-  survey: {},
+  survey: {
+     pages: [
+      {
+       name: "page1",
+       elements: [
+        {
+         type: "text",
+         name: "질문1"
+        }
+       ]
+      }
+     ]
+    },
   styles: [
     {
       border: {
@@ -33,20 +45,6 @@ var data = {
     { font: { bold: true }, align: "center" }
   ],
   rows: {
-    "0": {
-      cells: {
-        "0": { style: 3, text: "이름" },
-        "1": { style: 3, text: "나이"},
-        "2": { style: 3, text: "학번" }
-      }
-    },
-    "1": {
-      cells: {
-        "0": { text: "1" },
-        "1": { text: "=A2*2" },
-        "2": { text: "=B2*2" }
-      }
-    },
     len: 100
   },
   cols: { len: 26 },
