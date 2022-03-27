@@ -26,6 +26,7 @@ const TOKEN = '12345';
 const okdb = new OkdbClient(HOST);
 const DATA_TYPE = 'excel';
 
+
 function SurveyPage() {
 	//useState
   const [user, setUser] = useState(null);
@@ -54,7 +55,12 @@ function SurveyPage() {
 
 
   useEffect(() => {
-    document.title = `${documentId+".survey"}`;
+
+  	var commercial_container = document.getElementsByClassName("svd_commercial_container")
+		for (var i=0;i<commercial_container.length;i+=1){
+			commercial_container[i].style.display = 'none';
+		}
+    document.title = `${"survey"}`;
 
 
     okdb.connect({token:TOKEN, userName: "설문조사중.."})

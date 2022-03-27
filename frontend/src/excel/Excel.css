@@ -154,6 +154,13 @@ body {
           transform: translateY(-0.25em);
 }
 
+.B8:hover,
+.B8:focus {
+  box-shadow: 0 0.5em 0.5em -0.4em var(--hover);
+  -webkit-transform: translateY(-0.25em);
+          transform: translateY(-0.25em);
+}
+
 
 /*bouton fill couleur*/
 .B1 {
@@ -189,6 +196,11 @@ body {
 .B7 {
   --color: #2b5797;
   --hover: #2b5797;
+}
+
+.B8 {
+  --color: #000000;
+  --hover: #000000;
 }
 
 button {

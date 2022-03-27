@@ -37,6 +37,8 @@ import { VscGistSecret } from 'react-icons/vsc';
 import { GrPowerReset } from 'react-icons/gr';
 import { RiFileExcel2Fill } from 'react-icons/ri';
 import { RiFileWord2Fill } from 'react-icons/ri';
+import { AiOutlineCaretUp } from 'react-icons/ai';
+import { AiOutlineCaretDown } from 'react-icons/ai';
 //data
 import navy_img from "./navy.svg";
 import exampleData from "./exampleData";
@@ -51,6 +53,8 @@ const okdb = new OkdbClient(HOST);
 const MAX_LINE_NUM = 500
 const hiddenSurveyHOST = baseHOST + ':3000/survey/view?hidden=';
 //variation
+var surveyFormLink = "";
+var surveyViewLink = "";
 var xSheet ;
 var cellSelector ;
 Quill.register("modules/cursors", QuillCursors);
@@ -70,6 +74,7 @@ function ExcelPage() {
   const [user, setUser] = useState(null);
   const [read, setRead] = useState(false);
   const [documentId, setDocumentId] = useState('login');
+  const [titleHide, setTitleHide] = useState("false");
   //> online status and cursor/selections of other participants
   const [presences, setPresences] = useState({});
   const stateRef = useRef(null);
@@ -102,6 +107,12 @@ function ExcelPage() {
   const mousePointerRef = useRef(null);
   const editorCursorRef = useRef(null);
 
+  const noScroll = ()=> {
+		window.scrollTo(0, 0);
+	}
+
+
+
 
 
 
@@ -109,8 +120,17 @@ function ExcelPage() {
   //useEffect
 
   useEffect(() => {
-    document.title = `${documentId+".xlsx"}`;
+    document.title = `${documentId}`;
     if (pageId === 0) return;
+
+		// add listener to disable scroll
+		window.addEventListener('scroll', noScroll);
+		//document.body.style.overflow = 'hidden'
+
+
+     surveyFormLink = `${"/survey/create?sheet="+documentId}`
+     surveyViewLink = `${"/survey/view?sheet="+documentId}`
+
     // 1. step - connect
     okdb.connect({
         token: TOKEN,
@@ -153,7 +173,7 @@ function ExcelPage() {
               showContextmenu: true,
               showBottomBar: false,
               view: {
-                height: () => document.documentElement.clientHeight * 10 / 12,
+                height: () => document.documentElement.clientHeight,
                 width: () => document.documentElement.clientWidth * 10 / 12,
               },
               row: {
@@ -259,6 +279,8 @@ function ExcelPage() {
 
    if (pageId === 0) return;
     console.log("Editor init");
+    document.getElementById("text_show").style.display = "none";
+
 
     var toolbarOptions = [
           [{ 'font': [] }, { 'size': [] }],
@@ -535,6 +557,26 @@ function ExcelPage() {
     xSheet.sheet.loadData(newSheetData);
   }
 
+  const excel_show = () => {
+		document.getElementById("excel_show").style.display = "";
+		document.getElementById("text_show").style.display = "none";
+	}
+
+	const word_show = () => {
+		document.getElementById("excel_show").style.display = "none";
+		document.getElementById("text_show").style.display = "";
+	}
+
+	const title_show_change = () =>{
+	  if(titleHide == false) {
+	  	document.getElementById("title_show").style.display = ""
+	  	setTitleHide(true)
+	  } else {
+	  	document.getElementById("title_show").style.display = "none"
+	  	setTitleHide(false)
+	  }
+	}
+
 
 
 
@@ -606,30 +648,24 @@ function ExcelPage() {
 
   }
   else{
-  const surveyFormLink = `${"/survey/create?sheet="+documentId}`
-  const surveyViewLink = `${"/survey/view?sheet="+documentId}`
-
-
   return (
     <Grid container spacing={3}>
       <Grid item md={10}>
 
 
 
-        <h1 className = "title1" align="center">{documentId}</h1>
+        <h1 className = "title1" id = "title_show" align="center">{documentId}</h1>
+
 
         <div id="excel_show"  >
         	<div style={{marginLeft:"0.5em"}}>
-        		<button className = "B6" type="button" onClick={()=>{
-							document.getElementById("excel_show").style.display = "";
-							document.getElementById("text_show").style.display = "none";
-						}} >
+        		<button className = "B8" type="button" onClick={title_show_change} >
+							{titleHide? <AiOutlineCaretUp/>:<AiOutlineCaretDown/>}
+				 		</button>
+        		<button className = "B6" type="button" onClick={excel_show} >
 								엑셀 <RiFileExcel2Fill/>
 					 </button>
-					 <button className = "B7" type="button" onClick={()=>{
-							document.getElementById("excel_show").style.display = "none";
-							document.getElementById("text_show").style.display = "";
-						}}>
+					 <button className = "B7" type="button" onClick={word_show}>
 								워드 <RiFileWord2Fill/>
 					 </button>
 					<label className="input-file-button" for="input-file">
@@ -665,22 +701,21 @@ function ExcelPage() {
 
 					<div id="text_show" >
 						<div style={{marginLeft:"0.5em"}}>
-							<button className = "B6" type="button" onClick={()=>{
-								document.getElementById("excel_show").style.display = "";
-								document.getElementById("text_show").style.display = "none";
-							}}>
-									엑셀 <RiFileExcel2Fill/>
+							<button className = "B8" type="button" onClick={title_show_change} >
+								{titleHide? <AiOutlineCaretUp/>:<AiOutlineCaretDown/>}
+							</button>
+							<button className = "B6" type="button" onClick={excel_show} >
+								엑셀 <RiFileExcel2Fill/>
 						 </button>
-						 <button className = "B7" type="button" onClick={()=>{
-								document.getElementById("excel_show").style.display = "none";
-								document.getElementById("text_show").style.display = "";
-							}}>
+						 <button className = "B7" type="button" onClick={word_show}>
 									워드 <RiFileWord2Fill/>
 						 </button>
 					 </div>
-						<Paper>
-							<div id="text-container"></div>
-						</Paper>
+							<Paper>
+							 	<div class="text-container-style">
+									<div  id="text-container"></div>
+								</div>
+							</Paper>
 					</div>
 
 
