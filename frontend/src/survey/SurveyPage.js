@@ -1,75 +1,55 @@
+//base
 import React, { useEffect, useRef, useState } from 'react';
 import cloneDeep from 'lodash/cloneDeep';
-import OkdbClient from 'okdb-client';
-import queryString from 'query-string';
-import SurveyCreator from "./SurveyCreator";
-import SurveyView from "./Survey";
 import {
     useLocation,
     Outlet,
     Routes,
     Route,
 } from 'react-router-dom';
+//conponent
+import SurveyCreator from "./SurveyCreator";
+import SurveyView from "./Survey";
+//library
+import OkdbClient from 'okdb-client';
+import queryString from 'query-string';
 import crypto from 'crypto-js';
-import exampleData from "../excel/exampleData";
+//css
 import "./styles.css";
-import App from "./App";
+//data
+import exampleData from "../excel/exampleData";
 import secretKey from "../secret/secretKey";
 import baseHOST from "../secret/baseHOST";
+//constant
 const HOST = baseHOST+':7899';
 const TOKEN = '12345';
 const okdb = new OkdbClient(HOST);
-const DATA_TYPE = 'todo-tasks';
-console.log("okdb",okdb);
-var sheetData = null;
-function SurveyPage() {
+const DATA_TYPE = 'excel';
 
+function SurveyPage() {
+	//useState
   const [user, setUser] = useState(null);
   const {search} = useLocation();
   const query = queryString.parse(search);
   const documentId = query.sheet??crypto.AES.decrypt(search.substring(8), secretKey).toString(crypto.enc.Utf8);
-
-
   const [json, setJson] = useState(null);
   const [initJson, setInitJson] = useState(null);
   const [presences, setPresences] = useState({});
   const stateRef = useRef();
   stateRef.current = presences;
 
-   const broadcast = (messege) => {
-        okdb.sendPresence(messege);
-        //okdb.sendPresence({ situation: "end_messege"});
-  }
+   const updateAll = (messege) => {
 
-  const presenceCallback = (id, data) => {
-      console.log("presenceCallback@",id,data, sheetData);
-      if (!data) {
-      //console.log("user deleted!")
-          setPresences(prev => {
-            const newState = cloneDeep(prev);
-            delete newState[id];
-            return newState;
-          });
+		 if (messege.situation === "data_changed") {
+				okdb.put(DATA_TYPE, documentId, {
+					data: JSON.stringify(messege.updateData)
+				}).then(res => {
+					okdb.sendPresence({
+						situation: messege.situation,
+					});
+				}).catch((err) => console.log("Error updating doc", err));
+			}
 
-          return;
-         } else if (data.user && data.user.id) {
-         if( Object.keys(stateRef.current).includes(id)){
-            console.log("not first", id,stateRef.current);
-
-                if(data.situation === "excel_changed" | data.situation === "survey_result" | data.situation === "survey_changed"  ) {
-                    sheetData = data.data;
-                 }
-          }else {console.log("first",id, stateRef.current)
-
-              setPresences(prev => {
-                const newState = cloneDeep(prev);
-                newState[id] = {
-                  id,
-                  ...data,
-                };
-                return newState;
-              });}
-          }
   }
 
 
@@ -84,53 +64,57 @@ function SurveyPage() {
           DATA_TYPE, // collection name
           documentId,
           {data:JSON.stringify(exampleData)}, // default value to save if doesn't exist yet
-           { onPresence: presenceCallback, },
+           {},
        ).then(openedData => {
        setInitJson(JSON.parse(openedData.data).survey);
-       sheetData = JSON.parse(openedData.data);
 
        })
        })
        },[])
-    /*
-   const presenceCallback = (id, data) => {
-   console.log("presenceCallback", id,data);
-   if (!data) {
-     return;
-   }else if(data.situation === "excel_changed") {
-   console.log("data.data",data.data, initJson)
-          setSheetData({
-          ...data.data,
-          });
-       }
-   }
-   */
+
 
    const handleSurveyFormSave = formJson => {
-   console.log("handleSurveyFormSave");
+       const sheetData = JSON.parse(okdb.connection.collections[DATA_TYPE][documentId].data.data);
         setJson({ formJson });
-        console.log("sheetData@", sheetData);
         const newSheetData = {
             ...sheetData,
             survey: JSON.parse(formJson),
         }
 
-        okdb.put(DATA_TYPE, documentId, {data:JSON.stringify(newSheetData)})
-
-        broadcast({
-          situation: "survey_changed",
-          data:newSheetData
-        });
-
-        sheetData=newSheetData
-
+        updateAll({
+              situation: "data_changed",
+              updateData: newSheetData
+        })
 
   };
 
+  function dateFormat(date) {
+        let month = date.getMonth() + 1;
+        let day = date.getDate();
+        let hour = date.getHours();
+        let minute = date.getMinutes();
+        let second = date.getSeconds();
+
+        month = month >= 10 ? month : '0' + month;
+        day = day >= 10 ? day : '0' + day;
+        hour = hour >= 10 ? hour : '0' + hour;
+        minute = minute >= 10 ? minute : '0' + minute;
+        second = second >= 10 ? second : '0' + second;
+
+        return date.getFullYear() + '-' + month + '-' + day + ' ' + hour + ':' + minute + ':' + second;
+}
+
+
   const handleSurveyResult = resultJson => {
 
-    var surveyResult= resultJson.data
-    console.log("sheetData",sheetData)
+    let today = new Date();
+
+    var surveyResult= {
+        timestamp: dateFormat(today),
+        ...resultJson.data,
+        response: true
+    }
+    const sheetData = JSON.parse(okdb.connection.collections[DATA_TYPE][documentId].data.data);
     var newSheetData ={
         ...sheetData,
     }
@@ -138,7 +122,6 @@ function SurveyPage() {
     var maxOneLine = Math.max.apply(null,Object.keys(oneLine));
     const columnKey = Object.keys(newSheetData.rows).filter(it =>!isNaN(it ) )
     const addColumnIndex = Math.max.apply(null, [0,...columnKey] )+1
-    //console.log("addColumnIndex",addColumnIndex, newSheetData.rows)
     // 업데이트 부분
     Object.keys(surveyResult).map(sk => {
         var findKey=false;
@@ -197,31 +180,21 @@ function SurveyPage() {
         }
      })
 
-    okdb.put(DATA_TYPE, documentId, {data:JSON.stringify(newSheetData)});
+     updateAll({
+     		situation: "data_changed",
+        updateData: newSheetData,
+     })
 
-    broadcast({
-        situation: "survey_result",
-        data: newSheetData
-      });
-
-
-    console.log("handleSurveyResult",resultJson.data, newSheetData);
-
-    sheetData= newSheetData
-
-    /*
-
+		/*
     window.opener = null;
     window.open("", "_self");
     window.close()
     */
 
-
   }
 
   const cssTest = (survey, options) => {
     const classes = options.cssClasses;
-    console.log(classes);
 
     // classes.root = "sq-root";
     classes.title = "sq-title";
@@ -229,14 +202,6 @@ function SurveyPage() {
     classes.label = "sq-label";
     classes.header = "sq-header";
   };
-
-   /*
-   {
-   Object.keys(question).map( (key,idx) =>
-   <p>{question[key]}</p>
-   )}
-   */
-
 
    return (<Routes>
    <Route path="/create" element={<SurveyCreator

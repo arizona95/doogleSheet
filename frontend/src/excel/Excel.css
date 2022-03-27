@@ -182,13 +182,13 @@ body {
 }
 
 .B6 {
-  --color: #8fc866;
-  --hover: #8fc866;
+  --color: #2c7c4a;
+  --hover: #2c7c4a;
 }
 
 .B7 {
-  --color: #19bc8b;
-  --hover: #19bc8b;
+  --color: #2b5797;
+  --hover: #2b5797;
 }
 
 button {
@@ -204,10 +204,10 @@ button:hover, button:focus {
 button{
   background: none;
   border: 2px solid;
-  font: inherit;
+  font-size: small;
   line-height: 1;
-  margin-left: 0em !important;
-  margin-right:0.7em !important;
+  margin-right: 0.5em !important;
+  margin-left:0em !important;
   padding: 0.5em 1em;
 }
 
@@ -215,16 +215,17 @@ button{
   background: none;
   border: 2px solid;
   border-color : #1ab394;
-  font: inherit;
   line-height: 1;
-  margin-left: 1em !important;
-  margin-right:0.7em !important;
+  margin-left: 0em !important;
+  margin-right:0.5em !important;
   margin-bottom: 0.5em !important;
   padding: 0.34em 1em;
 
   color: #1ab394;
   -webkit-transition: 0.25s;
   transition: 0.25s;
+
+  font-size: small !important;
 }
 
 .myCss1 path {

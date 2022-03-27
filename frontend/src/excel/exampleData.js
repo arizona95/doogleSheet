@@ -45,11 +45,13 @@ var data = {
     { font: { bold: true }, align: "center" }
   ],
   rows: {
-    len: 100
+    len: 500
   },
   cols: { len: 26 },
   validations: [],
   autofilter: {}
 };
 
-export default data;
+var stringData = JSON.stringify(data);
+
+export default stringData;

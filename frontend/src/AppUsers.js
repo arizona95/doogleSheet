@@ -9,18 +9,16 @@ const AppUsers = ({ presences }) => {
       let left = 0;
       let top = 0;
       if(presence.left != null) {
-        const container = document.querySelector("#okdb-table-container");   
+        const container = document.querySelector("#okdb-table-container");
         if(container) {
           const containerRect = container.getBoundingClientRect();                
           top = containerRect.top + presence.top + window.scrollY + "px";
           left = containerRect.left + presence.left + window.scrollX + "px";
         }                
       }
-      const colors = [ "#5551FF", "#0FA958"];
-      const userColor = colors[index%colors.length];
       return (
       <div className="online-item" key={presenceId}>
-        <svg width="10" fill={userColor} focusable="false" viewBox="0 0 10 10" aria-hidden="true" title="fontSize small"><circle cx="5" cy="5" r="5"></circle></svg>
+        <svg width="10" fill={presence.color} focusable="false" viewBox="0 0 10 10" aria-hidden="true" title="fontSize small"><circle cx="5" cy="5" r="5"></circle></svg>
         {presence.user.name}
         { presence.left != null &&
           <div id="cursor" className="cursor-block" style={{left, top}}>

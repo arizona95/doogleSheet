@@ -1,5 +1,6 @@
 //base
-import { Grid, Paper } from '@material-ui/core';
+import { Container, Grid, Paper } from '@material-ui/core';
+import { Alert as MuiAlert } from "@material-ui/lab";
 import {
   BrowserRouter as Router,
   Route,
@@ -10,327 +11,225 @@ import {
 import React, { useEffect, useRef, useState } from 'react';
 import { useCookies } from 'react-cookie';
 import cloneDeep from 'lodash/cloneDeep';
+//component
+import AppUsers from '../AppUsers';
+import ExportXLSX from "./ExportXLSX";
+import ImportXLSX from "./ImportXLSX";
 //library
+import crypto from 'crypto-js';
 import OkdbClient from 'okdb-client';
 import Spreadsheet from "x-data-spreadsheet";
-import crypto from 'crypto-js';
 import { CopyToClipboard } from 'react-copy-to-clipboard'
-
+import Quill from "quill";
+import QuillCursors from "quill-cursors";
+//css
+import "x-data-spreadsheet/dist/xspreadsheet.css";
+import './Excel.css';
+import "bulma/css/bulma.css";
+import "../text/App.css";
+import "quill/dist/quill.snow.css";
+//icon
 import { FcUpload } from 'react-icons/fc';
 import { FcDownload } from 'react-icons/fc';
 import { RiSurveyFill } from 'react-icons/ri';
 import { FaCheckSquare } from 'react-icons/fa';
 import { VscGistSecret } from 'react-icons/vsc';
 import { GrPowerReset } from 'react-icons/gr';
-//component
-import AppUsers from '../AppUsers';
-//css
-import "x-data-spreadsheet/dist/xspreadsheet.css";
-import './Excel.css';
-import "bulma/css/bulma.css";
+import { RiFileExcel2Fill } from 'react-icons/ri';
+import { RiFileWord2Fill } from 'react-icons/ri';
 //data
 import navy_img from "./navy.svg";
 import exampleData from "./exampleData";
 import secretKey from "../secret/secretKey";
 import baseHOST from "../secret/baseHOST";
 import shortCutList from "./shortCutList";
-import ExportXLSX from "./ExportXLSX";
-import ImportXLSX from "./ImportXLSX";
-//variation
-const HOST = baseHOST+':7899';
-const hiddenSurveyHOST = baseHOST + ':3000/survey/view?hidden=';
+//constant
 const TOKEN = '12345';
+const HOST = baseHOST+':7899';
+const DATA_TYPE = 'excel';
 const okdb = new OkdbClient(HOST);
-const DATA_TYPE = 'todo-tasks';
+const MAX_LINE_NUM = 500
+const hiddenSurveyHOST = baseHOST + ':3000/survey/view?hidden=';
+//variation
 var xSheet ;
-var sendPresenceActive = false;
+var cellSelector ;
+Quill.register("modules/cursors", QuillCursors);
 
 function ExcelPage() {
-
+  //useState
   const [values, setValues] = useState({
-    userName:"",
-    sheetName:"",
+    userName: "",
+    sheetName: "",
   });
   const [cookies, setCookie, removeCookie] = useCookies({
-    userName:"",
-    sheetName:"",
+    userName: "",
+    sheetName: "",
   });
-
   const [pageId, setPageId] = useState(0);
+  const [pageMode, setPageMode] = useState("excel");
   const [user, setUser] = useState(null);
   const [read, setRead] = useState(false);
-  const [sheetData, setSheetData] = useState(null);
   const [documentId, setDocumentId] = useState('login');
-  const sheetRef = useRef(null);
-  // online status and cursor/selections of other participants
+  //> online status and cursor/selections of other participants
   const [presences, setPresences] = useState({});
-  // spreadsheet data
-  const [grid, setGrid] = useState(null);
-  const [wasEditing, setWasEditing] = useState(false);
-  const [editingCell, setEditingCell] = useState(undefined);
-  const stateRef = useRef();
+  const stateRef = useRef(null);
   stateRef.current = presences;
   const [localSelection, setLocalSelection] = useState({
-    start:{ri:0,ci:0},
-    end:{ri:0,ci:0},
+  	start: {
+      ri: 0,
+      ci: 0
+    },
+    end: {
+      ri: 0,
+      ci: 0
+    },
   });
 
-  const broadcast = (messege) => {
-        console.log("messege",messege);
-        okdb.op(messege);
-        okdb.sendPresence({ situation: "end_messege"});
-  }
+  //textEditor Add
 
-  // callback to recieve status changes of other collaborators
-  const presenceCallback = (id, data) => {
-  console.log("presenceCallback@", documentId,"id@",id,"data@", data);
-  var ifFirst=true;
-  if (!data) {
-  //console.log("user deleted!")
-      setPresences(prev => {
-        const newState = cloneDeep(prev);
-        delete newState[id];
-        return newState;
-      });
+  const Alert = props => {
+		return <MuiAlert elevation={6} variant="filled" {...props} />;
+	};
+	const colors = ["#5551FF", "#0FA958"];
 
-      return;
-     } else if (data.user && data.user.id) {
-     if( Object.keys(stateRef.current).includes(id)){
-        console.log("not first", id,stateRef.current);
+	const getUserColor = index => colors[index % colors.length];
 
-     if(data.situation === "excel_changed" | data.situation === "survey_result" | data.situation === "survey_changed"  ) {
-        xSheet.loadData({
-            ...data.data,
-            selector : data.selection,
-        });
-        //console.log("excel_changed",data.data, xSheet.data )
-        setSheetData(data.data);
+	const [doc, setDoc] = useState(null);
 
-        if(data.situation === "survey_result"){
-            setPresences(prev => {
-                const newState = cloneDeep(prev);
-                delete newState[id];
-                return newState;
-              });
-        }
+  const [error, setError] = useState(null);
+  const connectedRef = useRef(false);
+  const editorRef = useRef(null);
+  const mousePointerRef = useRef(null);
+  const editorCursorRef = useRef(null);
 
 
-    } else if (data.situation === "excel_selected") {
-      //console.log("selected", data);
-      const colors = ['#5552FF', '#0FA956'];
-      const index = data.user.id;
-      const colorIdx = index % colors.length;
-
-      //const sdom = document.getElementById("x-spreadsheet-demo").querySelector(`tbody tr:nth-child(${1}) td:nth-child(${1})`);
-      //console.log("sdom",sdom);
-      //xSheet.cellText(data.selection.start.ri, data.selection.start.ci, ).reRender();
-
-        /* setPresences(prev => {
-      console.log("keys",prev, Object.keys(prev) );
-        const index = Object.keys(prev).findIndex(item => item === id);
-        const colors = ['#5552FF', '#0FA956'];
-        const colorIdx = index % colors.length;
-        const color = colors[colorIdx];
-        const newState = cloneDeep(prev);
-        newState[id] = {
-          id,
-          color,
-          ...data,
-        };
-        return newState;
-
-      });*/
-
-    }
-    /*else if (data.situation === "edited") {
-        console.log("here!");
-        //xSheet.loadData(exampleData2);
-        xSheet.cellText(data.selection.start.ri, data.selection.start.ci, data.text).reRender();
-     }*/
-    }else {console.log("first",id, stateRef.current)
-
-      setPresences(prev => {
-        const index = Object.keys(prev).findIndex(item => item === id);
-        const colors = ['#5552FF', '#0FA956'];
-        const colorIdx = index % colors.length;
-        const color = colors[colorIdx];
-        const newState = cloneDeep(prev);
-        newState[id] = {
-          id,
-          color,
-          ...data,
-        };
-        return newState;
-
-      });}
-    }
-  };
 
 
+
+  //useEffect
 
   useEffect(() => {
-      setValues({
-      ...values,
-      ...cookies,
-      });
-  }, []);
-
-  useEffect(() => {
-    //console.log('update_document_id', documentId);
     document.title = `${documentId+".xlsx"}`;
-    if (pageId ===0 ) return;
+    if (pageId === 0) return;
     // 1. step - connect
-    okdb.connect({token:TOKEN, userName: values.userName})
+    okdb.connect({
+        token: TOKEN,
+        userName: values.userName
+      })
       .then(user => {
-        //console.log('[okdb] connected as ', user, documentId);
         setUser(user);
-        // 2. step - open document for collaborative editing   
+        // 2. step - open document for collaborative editing
+
+        // textEditor Add
+        /*
+        const defaultValue =  [{
+          insert: 'Hello world\n'
+        }];
+        const onOperation = (data, meta) => {
+          // callback to receive changes from others
+          console.log("onOperation", data, meta);
+          if (editorRef.current) {
+            console.log("Editor update", data);
+            editorRef.current.updateContents(data);
+          }
+        };
+        */
+
+
+
         okdb.open(
-          DATA_TYPE, // collection name
-          documentId,
-          {data:JSON.stringify(exampleData)}, // default value to save if doesn't exist yet
-          {
-            onPresence: presenceCallback,
-          },
-        ).then(openedData => {
-            // get the data once the doc is opened
-            console.log('Loaded doc from server ', JSON.parse(openedData.data));
-            setSheetData(JSON.parse(openedData.data));
-
-            xSheet = new Spreadsheet("#x-spreadsheet-demo",
+            DATA_TYPE, // collection name
+            documentId,
+            {data:exampleData}, // default value to save if doesn't exist yet
             {
-                mode: 'edit', // edit | read
-                  showToolbar: true,
-                  showGrid: true,
-                  showContextmenu: true,
-                  showBottomBar: false,
-                  view: {
-                    height: () => document.documentElement.clientHeight*10/12,
-                    width: () => document.documentElement.clientWidth*10/12,
-                  },
-                  row: {
-                    len: 100,
-                    height: 25,
-                  },
-                  col: {
-                    len: 26,
-                    width: 100,
-                    indexWidth: 60,
-                    minWidth: 60,
-                  },
-                  style: {
-                    bgcolor: '#ffffff',
-                    align: 'left',
-                    valign: 'middle',
-                    textwrap: false,
-                    strike: false,
-                    underline: false,
-                    color: '#0a0a0a',
-                    font: {
-                      name: 'Helvetica',
-                      size: 10,
-                      bold: false,
-                      italic: false,
-                    },
-                  },
-            }).loadData(JSON.parse(openedData.data)).change(changedData => {
+              onPresence: presenceCallback,
+            },
+          ).then(openedData => {
+            // get the data once the doc is opened
+            xSheet = new Spreadsheet("#x-spreadsheet-demo", {
+              mode: 'edit', // edit | read
+              showToolbar: true,
+              showGrid: true,
+              showContextmenu: true,
+              showBottomBar: false,
+              view: {
+                height: () => document.documentElement.clientHeight * 10 / 12,
+                width: () => document.documentElement.clientWidth * 10 / 12,
+              },
+              row: {
+                len: MAX_LINE_NUM,
+                height: 25,
+              },
+              col: {
+                len: 26,
+                width: 100,
+                indexWidth: 60,
+                minWidth: 60,
+              },
+              style: {
+                bgcolor: '#ffffff',
+                align: 'left',
+                valign: 'middle',
+                textwrap: false,
+                strike: false,
+                underline: false,
+                color: '#0a0a0a',
+                font: {
+                  name: 'Helvetica',
+                  size: 10,
+                  bold: false,
+                  italic: false,
+                },
+              },
+            }).loadData(JSON.parse(openedData.data))
 
-            console.log("changed!");
-
-            setSheetData(prev=>{
-
-             var newSheetData = { ...prev }
-             newSheetData = {
-                ...newSheetData,
-                ...changedData
-             }
-
-              okdb.put(DATA_TYPE, documentId, {data:JSON.stringify(newSheetData)}).then(res =>{
-                //console.log("doc saved, ", res);
-                setSheetData(newSheetData);
-
-
-
-
-                  broadcast({
-                      situation: "excel_changed",
-                      data:newSheetData
-                    });
-              }).catch((err) =>  console.log("Error updating doc", err));
+            xSheet.validate();
+            cellSelector = {
+              start: {
+                ri: 0,
+                ci: 0,
+              },
+              end: {
+                ri: 0,
+                ci: 0,
+              }
+            };
 
 
-              //  1.  데이터가 작성 완료되었을때
-              //  2.  postgresql 에 데이터저장
-              // 3. okdb precense 로 사용자들한테 뿌림
-              // 4. precense callback 으로 loaddata 다시함
-              //
-              //setSheetData(changedData);
-                // save data to db
-              });
 
-              xSheet.validate();
+            xSheet.on('cell-selected', (cell, ri, ci) => {
+
+              const newSheetData = {
+                ...JSON.parse(okdb.connection.collections[DATA_TYPE][documentId].data.data),
+                ...xSheet.datas[0].getData()
+              }
 
 
-             })
 
-             xSheet.on('cell-selected', (cell, ri, ci) => {
+              cellSelector = {
+                start: {
+                  ri: ri,
+                  ci: ci,
+                },
+                end: {
+                  ri: ri,
+                  ci: ci,
+                }
+              };
 
-                console.log("cell-selected",xSheet.data )
+              updateAll({
+                situation: "data_changed",
+                selection: cellSelector,
+                updateData: newSheetData,
+              })
 
-                   const newLocalSelection = {
-                        ri:ri,
-                        ci:ci,
-                        range:{
-                            sri: 0,
-                            sci: 0,
-                            eri: 0,
-                            eci: 0,
-                            w: 0,
-                            h: 0
-                        }
-                  };
-                  setLocalSelection(newLocalSelection);
-                  broadcast({
-                      situation: 'excel_selected',
-                      cell:cell,
-                      selection: newLocalSelection,
-                  });
-              });
+            });
 
-              xSheet.on('cells-selected', (cell, { sri, sci, eri, eci }) => {
-
-                    console.log("cells-selected",xSheet.data )
-                    const newLocalSelection = {
-                        ri: sri,
-                        ci: sci,
-                        range:{
-                            sri: sri,
-                            sci: sci,
-                            eri: eri,
-                            eci: eci,
-                            w: sci-sri,
-                            h: eci-eri,
-                        }
-                    };
-                    setLocalSelection(newLocalSelection);
-                    broadcast({
-                      situation: 'excel_selected',
-                      cell:cell,
-                      selection: newLocalSelection,
-                    });
-                });
-              // edited on cell
-              /*
-              xSheet.on('cell-edited', (text, ri, ci) => {
-              okdb.sendPresence({
-                      situation: 'edited',
-                      text:text,
-                      selection: {
-                        start: {ri:ri,ci:ci},
-                        end:{ri:ri,ci:ci},
-                      },
-                    });
-              });*/
+							//texteditor Add
+							/*
+             connectedRef.current = true;
+            	setDoc(openedData.textData);
+            	*/
 
 
           })
@@ -343,41 +242,226 @@ function ExcelPage() {
       });
   }, [documentId]);
 
+  useEffect(() => {
+    if (values.pageGo) {setPageId(1)}
+  }, [values]);
 
-  const otherSelections = Object.keys(presences)
-    .map(presenceId => presences[presenceId])
-    .filter(item => 'start' in item && 'end' in item);
+  useEffect(() => {
+    setValues({
+      ...values,
+      ...cookies,
+    });
+  }, []);
 
-   /*
-  const handleCellChange = (e) => {
-    const cell = e.currentTarget;
-    const textarea = cell.lastChild;
-    setEditingCell(cell);
-    cell.style.height = `${textarea.scrollHeight}px`;
-  };
+  //texteditor Add
 
-  const handleSheet = (sheet) => {
-  console.log("handleSheet", sheet);
-    if (sheet === null) return;
+   useEffect(() => {
 
-    sheetRef.current = sheet;
-    const currentEditing = sheet.state.forceEdit;
-    if (wasEditing && !currentEditing) {
-      editingCell.style.height = '';
-      setEditingCell(undefined);
+   if (pageId === 0) return;
+    console.log("Editor init");
+
+    var toolbarOptions = [
+          [{ 'font': [] }, { 'size': [] }],
+          [ 'bold', 'italic', 'underline', 'strike' ],
+          [{ 'color': [] }, { 'background': [] }],
+          [{ 'script': 'super' }, { 'script': 'sub' }],
+          [{ 'header': '1' }, { 'header': '2' }, 'blockquote', 'code-block' ],
+          [{ 'list': 'ordered' }, { 'list': 'bullet'}, { 'indent': '-1' }, { 'indent': '+1' }],
+          [ 'direction', { 'align': [] }],
+          [ 'link', 'image', 'video', 'formula' ],
+          [ 'clean' ]
+       ];
+
+    const editor = new Quill("#text-container", {
+      theme: "snow",
+      modules: {
+        toolbar: toolbarOptions,
+        cursors: {
+          transformOnTextChange: true,
+        },
+      },
+    });
+
+    /*
+
+    editorRef.current = editor;
+
+
+    editor.on("text-change", (delta, oldDelta, source) => {
+      if(source !== "user") return;
+      const contents = editor.getContents();
+
+      console.log("text-change ", delta, contents, source);
+      delta.type = "rich-text";
+      if(connectedRef.current) {
+        okdb.put("text", documentId, delta)
+        .catch(err => console.log("Error updating doc", err));
+      }
+
+    });
+    editor.on("selection-change", function (range, oldRange, source) {
+      console.log("Local cursor change: ", range);
+      editorCursorRef.current = range;
+      if(connectedRef.current) {
+        okdb.sendPresence({
+          editorCursor: range,
+          mousePointer: mousePointerRef.current
+        });
+      }
+    });
+    */
+  }, [editorRef, documentId]);
+
+
+
+  useEffect(() => {
+    const container = document.querySelector("#text-container");
+
+    const handler = e => {
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+      // calculate relative position of the mouse in the container
+      var left = e.clientX - containerRect.left;
+      var top = e.clientY - containerRect.top;
+      const value = {
+        left,
+        top,
+      };
+      mousePointerRef.current = value;
+      if(connectedRef.current) {
+        okdb.sendPresence({
+          mousePointer: value,
+          editorCursor: editorCursorRef.current
+        });
+      }
+    };
+
+  }, [editorRef]);
+  /*
+
+  useEffect(() => {
+    if (doc && editorRef.current) {
+      console.log("Editor update", doc);
+      editorRef.current.setContents(doc);
     }
-    setWasEditing(currentEditing);
-  };
+  }, [editorRef, doc]);*/
 
-   const handleXSheet = (sheet) => {
-   if (sheet === null) return;
-   //console.log("xSheet",xSheet);
-    //sheet.state.cellText(5, 5, 'xxxx').cellText(6, 5, 'yyy').reRender();
-   }*/
 
+  //function
+
+  const updateAll = (messege) => {
+    if (messege.situation === "data_changed") {
+      okdb.put(DATA_TYPE, documentId, {
+        data: JSON.stringify(messege.updateData)
+      }).then(res => {
+        okdb.sendPresence({
+          situation: messege.situation,
+          selection: messege.selection,
+        });
+      }).catch((err) => console.log("Error updating doc", err));
+    }
+  }
+
+  // callback to recieve status changes of other collaborators
+  const presenceCallback = (id, data) => {
+
+  	console.log("presenceCallback",xSheet,data)
+    var ifFirst = true;
+    if (!data) {
+      //console.log("user deleted!")
+      setPresences(prev => {
+        const newState = cloneDeep(prev);
+        delete newState[id];
+
+        // textEdit ADD
+        /*
+        if(editorRef.current) {
+          const cursors = editorRef.current.getModule("cursors");
+          cursors.removeCursor(id);
+        }
+        */
+
+        return newState;
+      });
+
+      return;
+    } else if (data.user && data.user.id) {
+      if (!Object.keys(stateRef.current).includes(id)) {
+
+        //console.log("first",id, stateRef.current)
+        setPresences(prev => {
+          const color = "#" + Math.floor(Math.random() * 16777215).toString(16);
+          const newState = cloneDeep(prev);
+          //const styleId =xSheet.sheet.data.addStyle({bgcolor:color});
+          newState[id] = {
+            id,
+            color,
+            ...data,
+            //styleId
+          };
+
+          // textEdit ADD
+          /*
+          if(editorRef.current) {
+						const cursors = editorRef.current.getModule("cursors");
+						if(data.editorCursor) {
+							cursors.createCursor(id, data.user.name, prev.color);
+							cursors.moveCursor(id, data.editorCursor);
+							cursors.toggleFlag(id, true);
+						} else {
+							cursors.removeCursor(id);
+						}
+					}
+					*/
+
+          return newState;
+        });
+
+      } else {
+        if (data.situation === "data_changed") {
+          // update style
+          const originData = JSON.parse(okdb.connection.collections[DATA_TYPE][documentId].data.data)
+
+          /*
+          var newStyleSheet ;
+
+          if(data.selection){
+              newStyleSheet = {
+                  ...originData,
+                  rows:{
+                      ...originData.rows,
+                      [data.selection.start.ri]:{
+                          ...originData.rows[data.selection.start.ri],
+                          cells:{
+                              ...originData.rows[data.selection.start.ri]?.cells,
+                              [data.selection.start.ci]:{
+                                  ...originData.rows[data.selection.start.ri]?.cells.[data.selection.start.ci],
+                                  style:stateRef.current[id].styleId
+                              }
+                          }
+                      }
+                  },
+                  styles:xSheet.sheet.data.styles,
+              }
+          }else{
+              newStyleSheet = {
+                  ...originData,
+                  styles:xSheet.sheet.data.styles,
+              }
+          }
+          */
+
+          //xSheet.sheet.loadData(newStyleSheet);
+          //xSheet.sheet.data.setData(originData);
+          xSheet.sheet.loadData(originData);
+
+        }
+      };
+    }
+  }
 
   const handleLoginInfoChange = (e) => {
-  setCookie(e.target.name, e.target.value);
+    setCookie(e.target.name, e.target.value);
     e.persist();
     setValues(v => ({
       ...v,
@@ -385,86 +469,76 @@ function ExcelPage() {
     }));
   };
 
-  const handlePageIdChange = (e)=> {
+  const handlePageIdChange = (e) => {
     setDocumentId(values.sheetName);
     setPageId(1);
 
   }
 
   const handleMecroSheetChange = (e) => {
-      const name = e.target.name;
-      setCookie("sheetName", name);
-      setValues(v => ({
-          ...v,
-          sheetName: name,
-      }))
-      if(values.userName !== ""){
-        setDocumentId(name);
-        setPageId(1);
-      };
+    const name = e.target.name;
+    setCookie("sheetName", name);
+    setValues(v => ({
+      ...v,
+      sheetName: name,
+    }))
+    if (values.userName !== "") {
+      setDocumentId(name);
+      setPageId(1);
+    };
   }
 
   const resetSheet = () => {
 
-    setSheetData(prev => {
-        var newSheetData = {
-          ...prev,
-          rows:{
-            len:100,
-           },
-        }
+    const originData = JSON.parse(okdb.connection.collections[DATA_TYPE][documentId].data.data);
+    var newSheetData = {
+      ...originData,
+      rows: {
+        len: MAX_LINE_NUM,
+      },
+    }
 
-        Object.keys(prev.rows).filter(it =>!isNaN(it ) ).map(rn => {
-            Object.keys(prev.rows[rn].cells).map(cn => {
-                if(prev.rows[rn].cells[cn].editable ===false){
-                    newSheetData = {
-                        ...newSheetData,
-                        rows:{
-                            ...newSheetData.rows,
-                            [rn]:{
-                                ...newSheetData.rows[rn],
-                                cells:{
-                                    ...newSheetData.rows[rn]?.cells,
-                                    [cn]:{
-                                        ...prev.rows[rn]?.cells[cn],
-                                        editable:false,
-                                    }
-
-                                }
-
-                            },
-                        }
-
-                    }
-                }
-            })
-        })
-
-
-        okdb.put(DATA_TYPE, documentId, {data:JSON.stringify(newSheetData)}).then(res =>{
-            //console.log("doc saved, ", res);
-
-          broadcast({
-              situation: "excel_changed",
-              data:newSheetData
-            });
-
-         })
-
-        xSheet.loadData({
+    Object.keys(originData.rows).filter(it => !isNaN(it)).map(rn => {
+      Object.keys(originData.rows[rn].cells).map(cn => {
+        if (originData.rows[rn].cells[cn].editable === false) {
+          newSheetData = {
             ...newSheetData,
-        });
+            rows: {
+              ...newSheetData.rows,
+              [rn]: {
+                ...newSheetData.rows[rn],
+                cells: {
+                  ...newSheetData.rows[rn]?.cells,
+                  [cn]: {
+                    ...originData.rows[rn]?.cells[cn],
+                    editable: false,
+                  }
+                }
+              },
+            },
+          }
+        }
+      })
+    })
 
-         return newSheetData
+    updateAll({
+      updateData: newSheetData,
+      situation: "data_changed",
+    })
 
-     })
+    // collaborators color
+    newSheetData = {
+      ...newSheetData,
+      styles: xSheet.sheet.data.styles,
+    }
+
+    xSheet.sheet.loadData(newSheetData);
   }
 
-  useEffect(() => {
-  if(values.pageGo) {
-  setPageId(1);
-  }
-    }, [values]);
+
+
+
+
 
 
   if (pageId===0){
@@ -539,45 +613,84 @@ function ExcelPage() {
   return (
     <Grid container spacing={3}>
       <Grid item md={10}>
+
+
+
         <h1 className = "title1" align="center">{documentId}</h1>
 
-        <label className="input-file-button" for="input-file">
-          엑셀 업로드 하기 <FcUpload/>
-        </label>
-        <input type="file" id="input-file" style={{display:"none"}} accept=".xls, .xlsx" onChange={(fileObject) => {ImportXLSX(xSheet, fileObject) }}/>
+        <div id="excel_show"  >
+        	<div style={{marginLeft:"0.5em"}}>
+        		<button className = "B6" type="button" onClick={()=>{
+							document.getElementById("excel_show").style.display = "";
+							document.getElementById("text_show").style.display = "none";
+						}} >
+								엑셀 <RiFileExcel2Fill/>
+					 </button>
+					 <button className = "B7" type="button" onClick={()=>{
+							document.getElementById("excel_show").style.display = "none";
+							document.getElementById("text_show").style.display = "";
+						}}>
+								워드 <RiFileWord2Fill/>
+					 </button>
+					<label className="input-file-button" for="input-file">
+						엑셀 업로드<FcUpload/>
+					</label>
+					<input type="file" id="input-file" style={{display:"none"}} accept=".xls, .xlsx" onChange={(fileObject) => {ImportXLSX(xSheet, fileObject) }}/>
+					<button className = "B2" onClick={() => ExportXLSX(xSheet,documentId)}>엑셀 다운로드<FcDownload/></button>
+					<Link to={surveyFormLink} target="_blank">
+							 <button className = "B1" type="button">
+										설문조사 양식 만들기 <RiSurveyFill/>
+							 </button>
+					 </Link>
+					 <Link to={surveyViewLink} target="_blank">
+							 <button className = "B4" type="button">
+										설문조사 하러가기 <FaCheckSquare/>
+							 </button>
+					 </Link>
+					 <CopyToClipboard text={hiddenSurveyHOST + crypto.AES.encrypt(documentId, secretKey).toString()}>
+							 <button className = "B3" type="button" >
+										설문조사 암호링크 복사 <VscGistSecret/>
+							 </button>
+					 </CopyToClipboard>
+					 	<button className = "B5" type="button" onClick={()=>resetSheet()}>
+										수정가능 영역 리셋 <GrPowerReset  className="myCss1"/>
+							 </button>
 
+					 	</div>
+						<div
+							style={{ height: "83%", width: "auto" }}
+							id="x-spreadsheet-demo"
+						></div>
+					</div>
 
-        <button className = "B2" onClick={() => ExportXLSX(xSheet,documentId)}>엑셀 다운받기 <FcDownload/></button>
-        <Link to={surveyFormLink} target="_blank">
-             <button className = "B1" type="button">
-                  설문조사 양식 만들기 <RiSurveyFill/>
-             </button>
-         </Link>
-         <Link to={surveyViewLink} target="_blank">
-             <button className = "B4" type="button">
-                  설문조사 하러가기 <FaCheckSquare/>
-             </button>
-         </Link>
-         <CopyToClipboard text={hiddenSurveyHOST + crypto.AES.encrypt(documentId, secretKey).toString()}>
-             <button className = "B3" type="button" >
-                  설문조사 암호링크 복사 <VscGistSecret/>
-             </button>
-         </CopyToClipboard>
-         <button className = "B5" type="button" onClick={()=>resetSheet()}>
-                  수정가능 영역 리셋 <GrPowerReset  className="myCss1"/>
-             </button>
-          <div
-            style={{ height: "83%", width: "auto" }}
-            id="x-spreadsheet-demo"
-        ></div>
+					<div id="text_show" >
+						<div style={{marginLeft:"0.5em"}}>
+							<button className = "B6" type="button" onClick={()=>{
+								document.getElementById("excel_show").style.display = "";
+								document.getElementById("text_show").style.display = "none";
+							}}>
+									엑셀 <RiFileExcel2Fill/>
+						 </button>
+						 <button className = "B7" type="button" onClick={()=>{
+								document.getElementById("excel_show").style.display = "none";
+								document.getElementById("text_show").style.display = "";
+							}}>
+									워드 <RiFileWord2Fill/>
+						 </button>
+					 </div>
+						<Paper>
+							<div id="text-container"></div>
+						</Paper>
+					</div>
+
 
       </Grid>
       <Grid item md={2}>
         <div className="online-panel">
           <h4>온라인:</h4>
           <div className="online-item" key="000">
-            <svg width="10" focusable="false" viewBox="0 0 10 10" aria-hidden="true" title="fontSize small">
-              <circle cx="5" cy="5" r="5"></circle>
+            <svg width="10" focusable="false" viewBox="0 0 10 10" aria-hidden="true" title="fontSize small" >
+              <circle cx="5" cy="5" r="5" fill="#5552FF"></circle>
             </svg>
             나 ({user ? user.name : 'connecting...'})
           </div>

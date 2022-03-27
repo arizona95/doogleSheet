@@ -29,7 +29,6 @@ export default class SurveyView extends Component {
   };
   render() {
     const { init } = this.props;
-    console.log("surv_json", init);
 
     var model = new Survey.Model(init);
 
